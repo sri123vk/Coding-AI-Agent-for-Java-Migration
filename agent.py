@@ -28,9 +28,9 @@ from rich import box
 
 console = Console()
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  TOOL SCHEMAS
-# ─────────────────────────────────────────────────────────────
+# 
 
 TOOLS = [types.Tool(function_declarations=[
     types.FunctionDeclaration(
@@ -110,9 +110,9 @@ TOOLS = [types.Tool(function_declarations=[
     ),
 ])]
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  TOOL IMPLEMENTATIONS
-# ─────────────────────────────────────────────────────────────
+# 
 
 change_log = []
 
@@ -178,28 +178,28 @@ def execute_tool(name, args):
     elif name == "write_file":     return write_file(args["path"], args["content"])
     elif name == "list_directory": return list_directory(args["path"], args.get("max_depth", 4))
     elif name == "search_in_files":return search_in_files(args["directory"], args["pattern"], args.get("file_extension", ".java"))
-    elif name == "log_change":     return log_change(args["category"], args["file"], args["change_type"],
-                                                     args["description"], args.get("before",""), args.get("after",""))
+    elif name == "log_change":     return log_change(args.get("category","GENERAL"), args.get("file", args.get("filename", args.get("path","unknown"))), args.get("change_type", args.get("change","change")),
+                                                     args.get("description",""), args.get("before",""), args.get("after",""))
     return {"error": f"Unknown tool: {name}"}
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  DISPLAY
-# ─────────────────────────────────────────────────────────────
+# 
 
-ICONS  = {"run_shell":"⚡","read_file":"📖","write_file":"✏️ ","list_directory":"📁","search_in_files":"🔍","log_change":"📋"}
+ICONS  = {"run_shell":">>","read_file":">>","write_file":">>","list_directory":">>","search_in_files":">>","log_change":">>"}
 COLORS = {"BUILD_CONFIG":"cyan","CODE_MODERNIZATION":"green","DEPENDENCY":"yellow","SPRING_BOOT":"magenta","BUG_FIX":"red","TEST_FIX":"orange3"}
 
 def print_banner():
     console.print()
     console.print(Panel.fit(
-        "[bold cyan]☕  Java 11 → 21 Migration Agent[/bold cyan]\n"
+        "[bold cyan]Java 11 to 21 Migration Agent[/bold cyan]\n"
         "[dim]  A: Build Config  B: Code Modernization  C: Dependencies  D: Spring Boot 2→3[/dim]\n"
         "[dim]  Powered by Gemini 2.5 Flash · Raw API · No frameworks[/dim]",
         border_style="cyan", padding=(1, 4)))
     console.print()
 
 def print_tool_call(name, args):
-    icon = ICONS.get(name, "🔧")
+    icon = ICONS.get(name, "[>>]")
     if name == "run_shell":
         detail = f"[bold yellow]{name}[/bold yellow]  [dim]$ {args.get('command','')[:130]}[/dim]"
     elif name == "write_file":
@@ -217,7 +217,7 @@ def print_tool_call(name, args):
 def print_tool_result(name, result):
     if name == "run_shell":
         rc = result.get("returncode", 0)
-        mark = "[green]✓[/green]" if rc == 0 else "[red]✗[/red]"
+        mark = "[green]OK[/green]" if rc == 0 else "[red]FAIL[/red]"
         stdout = result.get("stdout","").strip()
         stderr = result.get("stderr","").strip()
         if stdout:
@@ -228,40 +228,40 @@ def print_tool_result(name, result):
             console.print(f"    [red]  ↳ {chr(10)+'     '.join(lines)}[/red]")
     elif name == "write_file":
         if result.get("success"):
-            console.print(f"    [green]✓ Saved ({result.get('bytes',0)} bytes) — backup created[/green]")
+            console.print(f"    [green] Saved ({result.get('bytes',0)} bytes) — backup created[/green]")
         elif result.get("error"):
-            console.print(f"    [red]✗ {result['error']}[/red]")
+            console.print(f"    [red] {result['error']}[/red]")
     elif name == "log_change":
         cat = change_log[-1]["category"] if change_log else ""
         col = COLORS.get(cat, "white")
-        console.print(f"    [green]✓[/green] [{col}]{cat}[/{col}] change #{result.get('total',0)} logged")
+        console.print(f"    [green][/green] [{col}]{cat}[/{col}] change #{result.get('total',0)} logged")
 
 def print_agent_text(text):
     if text and text.strip():
         for line in text.strip().splitlines():
             if line.strip():
-                console.print(f"  [cyan]→[/cyan] {line}")
+                console.print(f"  [cyan]>[/cyan] {line}")
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  MIGRATION REPORT
-# ─────────────────────────────────────────────────────────────
+# 
 
 def save_report(repo_url, repo_dir, test_passed):
     lines = [
         "# Java 11 → 21 Migration Report",
         f"\n**Repository:** {repo_url}",
         f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"**Tests Passed:** {'✅ YES' if test_passed else '❌ NO / Not run'}",
+        f"**Tests Passed:** {' YES' if test_passed else ' NO / Not run'}",
         f"**Total Changes:** {len(change_log)}",
         "\n---\n",
     ]
     titles = {
-        "BUILD_CONFIG":       "## 🏗️  A — Build Configuration",
-        "CODE_MODERNIZATION": "## ✨  B — Code Modernization",
-        "DEPENDENCY":         "## 📦  C — Dependency Upgrades",
-        "SPRING_BOOT":        "## 🌱  D — Spring Boot 2→3 Migration",
-        "BUG_FIX":            "## 🐛  Bug Fixes",
-        "TEST_FIX":           "## 🧪  Test Fixes",
+        "BUILD_CONFIG":       "## A — Build Configuration",
+        "CODE_MODERNIZATION": "## B — Code Modernization",
+        "DEPENDENCY":         "## C — Dependency Upgrades",
+        "SPRING_BOOT":        "## D — Spring Boot 2 to 3 Migration",
+        "BUG_FIX":            "## Bug Fixes",
+        "TEST_FIX":           "## Test Fixes",
     }
     groups = {}
     for c in change_log:
@@ -282,14 +282,14 @@ def save_report(repo_url, repo_dir, test_passed):
 
     lines += [
         "---",
-        "\n## 🔄 How to Revert All Changes",
+        "\n##  How to Revert All Changes",
         "```bash",
         "git diff HEAD          # see all changes",
         "git diff HEAD -- file  # see one file",
         "git checkout .         # revert everything",
         "git checkout -- file   # revert one file",
         "```",
-        "\n## 📋 Changed Files",
+        "\n##  Changed Files",
     ]
     changed = sorted(set(e['file'] for e in change_log))
     for f in changed:
@@ -314,12 +314,12 @@ def print_summary(repo_url, repo_dir, test_passed):
         console.print("  [yellow]No changes were logged.[/yellow]")
     else:
         labels = {
-            "BUILD_CONFIG":       ("🏗  Build Config",   "cyan"),
-            "CODE_MODERNIZATION": ("✨ Modernization",    "green"),
-            "DEPENDENCY":         ("📦 Dependencies",     "yellow"),
-            "SPRING_BOOT":        ("🌱 Spring Boot",      "magenta"),
-            "BUG_FIX":            ("🐛 Bug Fixes",        "red"),
-            "TEST_FIX":           ("🧪 Test Fixes",       "orange3"),
+            "BUILD_CONFIG":       ("Build Config", "cyan"),
+            "CODE_MODERNIZATION": ("Modernization", "green"),
+            "DEPENDENCY":         ("Dependencies", "yellow"),
+            "SPRING_BOOT":        ("Spring Boot", "magenta"),
+            "BUG_FIX":            ("Bug Fixes", "red"),
+            "TEST_FIX":           ("Test Fixes", "orange3"),
         }
         table = Table(box=box.ROUNDED, border_style="cyan", header_style="bold cyan", show_lines=True)
         table.add_column("Category",    style="bold",   width=20)
@@ -343,7 +343,7 @@ def print_summary(repo_url, repo_dir, test_passed):
         console.print(table)
 
     console.print()
-    test_icon = "[green]✅ PASSED[/green]" if test_passed else "[red]❌ FAILED / Not run[/red]"
+    test_icon = "[green]PASSED[/green]" if test_passed else "[red]FAILED / Not run[/red]"
     console.print(f"  [bold]Total changes:[/bold]  {len(change_log)}")
     console.print(f"  [bold]Tests:[/bold]          {test_icon}")
 
@@ -359,35 +359,41 @@ def print_summary(repo_url, repo_dir, test_passed):
     console.print(f"  [bold]Revert all:[/bold]         [cyan]git -C {repo_dir} checkout .[/cyan]")
     console.print()
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  SYSTEM PROMPT  (A + B + C + D)
-# ─────────────────────────────────────────────────────────────
+# 
 
 SYSTEM_PROMPT = """You are an expert Java migration agent. Migrate a Java 11 project to Java 21.
 Cover ALL FOUR areas below. Be thorough and methodical.
 
-═══════════════════════════════════════
+
 AREA A — BUILD CONFIGURATION
-═══════════════════════════════════════
-CRITICAL: Use sed for ALL pom.xml changes. NEVER rewrite the whole pom.xml with write_file.
 
-For Maven (pom.xml) — use these exact sed patterns (replace REPO with actual path):
-  sed -i 's|<java.version>[^<]*</java.version>|<java.version>21</java.version>|g' REPO/pom.xml
-  sed -i 's|<maven.compiler.source>[^<]*</maven.compiler.source>|<maven.compiler.source>21</maven.compiler.source>|g' REPO/pom.xml
-  sed -i 's|<maven.compiler.target>[^<]*</maven.compiler.target>|<maven.compiler.target>21</maven.compiler.target>|g' REPO/pom.xml
+CRITICAL: NEVER use "sed -i '/pattern/a ...'" to insert new lines in pom.xml.
+It always produces corrupt XML with literal backslash-n. It is BROKEN. Do not use it.
 
-After EVERY pom.xml change: mvn validate -f REPO/pom.xml
-If validate fails: fix only the specific broken line with sed.
+Use Python one-liners for ALL pom.xml edits (replace REPO with actual repo path):
 
-For Gradle (build.gradle):
-  Add: java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
-  Use write_file for gradle files (they're simpler).
+Update java.version:
+  run_shell("python3 -c \"import re,sys; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\'<java.version>[^<]*</java.version>\',\'<java.version>21</java.version>\',c); open(f,\'w\').write(c)\" /tmp/REPO/pom.xml")
 
-log_change(category="BUILD_CONFIG") for each change.
+Update maven.compiler.source (only if property exists):
+  run_shell("python3 -c \"import re,sys; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\'<maven.compiler.source>[^<]*</maven.compiler.source>\',\'<maven.compiler.source>21</maven.compiler.source>\',c); open(f,\'w\').write(c)\" /tmp/REPO/pom.xml")
 
-═══════════════════════════════════════
+Update Spring Boot parent version:
+  run_shell("python3 -c \"import re,sys; f=sys.argv[1]; c=open(f).read(); c=re.sub(r\'(<artifactId>spring-boot-starter-parent</artifactId>\\s*<version>)[^<]*(</version>)\',r\'\\g<1>3.2.5\\g<2>\',c,flags=re.DOTALL); open(f,\'w\').write(c)\" /tmp/REPO/pom.xml")
+
+Add dependency to pom.xml (e.g. H2 for tests):
+  run_shell("python3 -c \"f=\'/tmp/REPO/pom.xml\'; c=open(f).read(); block=\'\\n    <dependency>\\n      <groupId>com.h2database</groupId>\\n      <artifactId>h2</artifactId>\\n      <scope>test</scope>\\n    </dependency>\'; c=c.replace(\'</dependencies>\',block+\'\\n</dependencies>\'); open(f,\'w\').write(c)\"")
+
+After EVERY pom.xml change run: mvn validate -f /tmp/REPO/pom.xml
+log_change(category="BUILD_CONFIG") for each successful change.
+
+For Gradle (build.gradle): Use write_file to update the whole file (Gradle files are smaller/simpler).
+
+
 AREA B — CODE MODERNIZATION
-═══════════════════════════════════════
+
 For each Java file, use read_file then write_file with modernized version:
 
 1. Text Blocks: multi-line String concatenation -> triple-quote text blocks (triple-quoted strings)
@@ -404,9 +410,9 @@ For each Java file, use read_file then write_file with modernized version:
 
 log_change(category="CODE_MODERNIZATION") for each file modified.
 
-═══════════════════════════════════════
+
 AREA C — DEPENDENCY UPGRADES
-═══════════════════════════════════════
+
 Use sed for pom.xml/build.gradle dependency version changes.
 Check and fix:
 - Lombok: upgrade to 1.18.30+
@@ -420,9 +426,9 @@ Check and fix:
 Always run mvn validate after dependency changes.
 log_change(category="DEPENDENCY") for each version change.
 
-═══════════════════════════════════════
+
 AREA E — SERIALIZATION & JSON CHANGES
-═══════════════════════════════════════
+
 Check for Jackson/serialization issues common in Java 21 migrations:
 
 1. Jackson on Records: records need explicit annotations for proper serialization
@@ -441,9 +447,9 @@ Check for Jackson/serialization issues common in Java 21 migrations:
 
 log_change(category="CODE_MODERNIZATION") for each serialization fix.
 
-═══════════════════════════════════════
+
 AREA F — HTTP CLIENT MIGRATION
-═══════════════════════════════════════
+
 Check if RestTemplate is used and migrate to RestClient (Spring Boot 3.2+):
 
 1. Search: search_in_files(pattern="RestTemplate|new RestTemplate", file_extension=".java")
@@ -460,9 +466,9 @@ Check if RestTemplate is used and migrate to RestClient (Spring Boot 3.2+):
 4. If WebFlux is on classpath, suggest WebClient for reactive use cases
 5. log_change(category="CODE_MODERNIZATION", change_type="RestTemplate->RestClient") for each file
 
-═══════════════════════════════════════
+
 AREA D — SPRING BOOT 2→3 (if applicable)
-═══════════════════════════════════════
+
 First check: grep -r "spring-boot" REPO/pom.xml to detect Spring Boot version.
 If Spring Boot 2.x detected:
 
@@ -482,9 +488,9 @@ If Spring Boot 2.x detected:
 
 log_change(category="SPRING_BOOT") for each change.
 
-═══════════════════════════════════════
+
 TEST & FIX LOOP
-═══════════════════════════════════════
+
 After all changes, run: mvn -q test -f REPO/pom.xml (or ./gradlew test)
 If FAILS:
   1. Read the full error carefully
@@ -494,9 +500,9 @@ If FAILS:
   5. Repeat up to 3 times
   6. log_change(category="BUG_FIX" or "TEST_FIX")
 
-═══════════════════════════════════════
+
 STRICT WORKFLOW
-═══════════════════════════════════════
+
 1. git clone into /tmp/<repo-name>
 2. list_directory (understand structure)
 3. Detect build tool: does pom.xml exist? → Maven. does build.gradle exist? → Gradle.
@@ -557,11 +563,21 @@ COMMON ERRORS AND EXACT FIXES:
 5. Text block inserts duplicate @Override:
    When converting toString() to text block, use write_file for the WHOLE file,
    not sed, to avoid accidentally duplicating annotations.
+
+6. "Database connection failure" / "Cannot load driver class: com.mysql.jdbc.Driver" in tests:
+   Cause: repo uses MySQL but Docker has no MySQL. Fix by adding H2 test dependency and
+   overriding datasource in test properties:
+   Step 1 - add H2 test dependency to pom.xml using Python:
+     run_shell("python3 -c \"c=open('/tmp/REPO/pom.xml').read(); h2='\\n    <dependency>\\n      <groupId>com.h2database</groupId>\\n      <artifactId>h2</artifactId>\\n      <scope>test</scope>\\n    </dependency>'; c=c.replace('</dependencies>',h2+'\\n</dependencies>'); open('/tmp/REPO/pom.xml','w').write(c)\"")
+   Step 2 - create src/test/resources/application.properties:
+     write_file("/tmp/REPO/src/test/resources/application.properties",
+       "spring.datasource.url=jdbc:h2:mem:testdb\nspring.datasource.driver-class-name=org.h2.Driver\nspring.datasource.username=sa\nspring.datasource.password=\nspring.jpa.database-platform=org.hibernate.dialect.H2Dialect\nspring.jpa.hibernate.ddl-auto=create-drop\n")
+   Step 3 - run mvn validate, then mvn test again
 """
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  MAIN AGENT LOOP
-# ─────────────────────────────────────────────────────────────
+# 
 
 def run_agent(repo_url):
     print_banner()
@@ -676,9 +692,9 @@ def run_agent(repo_url):
 
     print_summary(repo_url, repo_dir, test_passed)
 
-# ─────────────────────────────────────────────────────────────
+# 
 #  ENTRY POINT
-# ─────────────────────────────────────────────────────────────
+# 
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("--help", "-h"):
@@ -691,7 +707,7 @@ def main():
             "  D) Spring Boot 2→3 migration (javax→jakarta)\n\n"
             "[bold yellow]Required:[/bold yellow]  export GEMINI_API_KEY=YOUR-FREE-KEY\n"
             "[dim]Free key:[/dim]   https://aistudio.google.com/apikey",
-            title="[bold]☕  Java 11→21 Migration Agent[/bold]", border_style="cyan", padding=(1,3)))
+            title="[bold]  Java 11→21 Migration Agent[/bold]", border_style="cyan", padding=(1,3)))
         sys.exit(0)
 
     if not os.environ.get("GEMINI_API_KEY"):
