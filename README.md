@@ -31,9 +31,19 @@ Covers build config, code modernization, dependency fixes, test runs, and produc
 - Removes deprecated APIs (SecurityManager, Nashorn)
 - Adds `--add-opens` JVM flags only when required
 
+### Area D — Spring Boot 2.x → 3.x
+
+
+-Spring Boot 2.7 → 3.2 migration
+-Full javax.* → jakarta.* sweep
+-Security config API changes
+-Auto-configuration migration
+-Integration test support
+
+
 ### Output
-- ✅ Migrated source files (in the cloned repo)
-- ✅ `MIGRATION_REPORT.md` saved to the project root — documents every change with before/after
+-  Migrated source files (in the cloned repo)
+- `MIGRATION_REPORT.md` saved to the project root — documents every change with before/after
 
 ---
 
@@ -207,24 +217,3 @@ java-migration-agent/
 
 ---
 
-## Requirements
-
-- Docker Desktop (Mac/Windows/Linux)
-- Anthropic API key (`sk-ant-...`) — get at console.anthropic.com
-- Git (to clone this repo)
-- That's it — Java and Maven run inside Docker
-
----
-
-## Future: Area D — Spring Boot 2.x → 3.x
-
-This is the next planned upgrade:
-- Spring Boot 2.7 → 3.2 migration
-- Full `javax.*` → `jakarta.*` sweep
-- Security config API changes
-- Auto-configuration migration
-- Integration test support
-
----
-
-*Built for CS course assignment — individual submission*
