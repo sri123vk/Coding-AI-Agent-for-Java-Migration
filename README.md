@@ -3,8 +3,6 @@
 A CLI coding agent that **fully migrates Java 11 projects to Java 21** — automatically.  
 Covers build config, code modernization, dependency fixes, test runs, and produces a migration report.
 
-> Built with raw Anthropic API calls. No LangChain, no Strands, no frameworks.
-
 ---
 
 ## What It Does
