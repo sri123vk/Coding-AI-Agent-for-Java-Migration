@@ -1,7 +1,7 @@
 # Java 11 to 21 Migration Agent
 
 A CLI-based autonomous coding agent that migrates Java 11 projects to Java 21.
-Built with raw Gemini 2.5 Flash API — no LangChain, no agentic frameworks.
+Built with raw Gemini 2.5 Flash API.
 
 ---
 
