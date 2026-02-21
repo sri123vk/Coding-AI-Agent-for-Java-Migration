@@ -119,26 +119,6 @@ Six tools available to the agent:
 
 ---
 
-## Key Design Decision — Python over sed for pom.xml
-
-pom.xml is always modified using Python one-liners, never rewritten entirely and never using
-sed append commands. This was discovered through testing — sed append inserts literal backslash-n
-into XML instead of real newlines, always corrupting the file. Python handles it safely:
-
-```bash
-python3 -c "
-import re, sys
-f = sys.argv[1]
-c = open(f).read()
-c = re.sub(r'<java.version>[^<]*</java.version>', '<java.version>21</java.version>', c)
-open(f, 'w').write(c)
-" /tmp/repo/pom.xml
-```
-
-This also mirrors real production practice — surgically editing only what needs to change
-rather than regenerating the whole file and risking dropped dependency tags.
-
----
 
 ## Project Structure
 
@@ -163,7 +143,7 @@ Coding-AI-Agent-for-Java-Migration/
 
 ---
 
-## Common Migration Patterns Handled
+##  Patterns Handled
 
 **javax to jakarta batch migration (one command across all files):**
 ```bash
@@ -207,8 +187,6 @@ The same four types of changes appeared in every migration:
 - Fixing dependency version conflicts (Lombok, Mockito, Surefire)
 - Migrating namespaces (javax to jakarta)
 
-This agent automates all four. What took 2 weeks now takes about 10 minutes.
-
 ---
 
-CS Coding Agent Assignment — Srimathi Ravisankar, February 2026
+CS Coding Agent Assignment — CS 839 - Srimathi Ravisankar, February 2026
