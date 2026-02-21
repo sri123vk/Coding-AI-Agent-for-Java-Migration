@@ -1,232 +1,214 @@
-# ☕ Java 11 → 21 Migration Agent
+# Java 11 to 21 Migration Agent
 
-A CLI coding agent that **fully migrates Java 11 projects to Java 21** — automatically.  
-Covers build config, code modernization, dependency fixes, test runs, and produces a migration report.
-
-> Built with raw Anthropic API calls. No LangChain, no Strands, no frameworks.
+A CLI-based autonomous coding agent that migrates Java 11 projects to Java 21.
+Built with raw Gemini 2.5 Flash API — no LangChain, no agentic frameworks.
 
 ---
 
 ## What It Does
 
-### Area A — Build Configuration
-- Detects Maven (`pom.xml`) or Gradle (`build.gradle`)
-- Updates Java version to 21 using `<maven.compiler.release>21</maven.compiler.release>`
-- Upgrades `maven-compiler-plugin` to 3.12+, `maven-surefire-plugin` to 3.2.5+
-- Adds Gradle Java toolchain block for Gradle projects
-- Runs `mvn test` or `./gradlew test` and iterates on failures
+| Area | What It Migrates |
+|------|-----------------|
+| A — Build Config | Java version to 21, Spring Boot parent version, Maven compiler/surefire plugins, Gradle toolchain |
+| B — Code Modernization | Records, Text Blocks, Pattern Matching instanceof, Switch Expressions, var, List.of(), String.isBlank() |
+| C — Dependency Upgrades | Surefire 3.2.5+, Compiler Plugin 3.12.1+, Lombok 1.18.30+, Mockito 5.x, Jackson 2.15+, Byte Buddy 1.14+ |
+| D — Spring Boot 2 to 3 | Batch javax.* to jakarta.* migration, Spring Boot parent 3.2.x, Security config updates |
+| E — Serialization | java.util.Date to java.time.*, Jackson record support, deprecated ObjectMapper configs |
+| F — HTTP Client | RestTemplate to RestClient migration, @Bean definition updates |
 
-### Area B — Code Modernization
-| Java Feature | What it replaces |
-|---|---|
-| **Text Blocks** (Java 15) | Multi-line string concatenation |
-| **Records** (Java 16) | Verbose POJOs with only fields + getters |
-| **Pattern Matching instanceof** (Java 16) | `if (x instanceof Foo) { Foo f = (Foo) x; }` |
-| **Switch Expressions** (Java 14) | Verbose switch statements |
-| **`var`** (Java 10) | Redundant type declarations |
-| **`String.isBlank()`** (Java 11) | `.trim().isEmpty()` |
-| **`List.of()`** (Java 9) | `Arrays.asList(...)` |
-
-### Area C — Dependency & Compatibility
-- Detects and migrates `javax.*` → `jakarta.*` (for Spring Boot 3.x / Jakarta EE 9+)
-- Updates Lombok, Mockito, Byte Buddy, ASM to Java 21-compatible versions
-- Removes deprecated APIs (SecurityManager, Nashorn)
-- Adds `--add-opens` JVM flags only when required
-
-### Output
-- ✅ Migrated source files (in the cloned repo)
-- ✅ `MIGRATION_REPORT.md` saved to the project root — documents every change with before/after
+After all changes, runs mvn test or ./gradlew test, fixes failures, and retries up to 3 times.
+Produces a MIGRATION_REPORT.md with every change logged (category, before/after snippets, how to revert).
 
 ---
 
-## Quick Start
+## Prerequisites
 
-### 1. Install Docker
-Download from: https://www.docker.com/products/docker-desktop/  
-(Choose Apple Silicon for M1/M2/M3 Mac, Intel for older Mac)
+- Docker Desktop — https://www.docker.com/products/docker-desktop
+- Gemini API Key (free) — https://aistudio.google.com/apikey
+- macOS, Linux, or Windows with WSL2
 
-### 2. Get an Anthropic API Key
-Sign up at: https://console.anthropic.com  
-Create a key under **API Keys** → starts with `sk-ant-...`
+---
 
-### 3. Set up the project
+## Installation
 
 ```bash
-# Clone this repo (or unzip the submission)
-cd java-migration-agent
-
-# Make the run script executable
+git clone https://github.com/sri123vk/Coding-AI-Agent-for-Java-Migration
+cd Coding-AI-Agent-for-Java-Migration
 chmod +x run.sh
 ```
 
-### 4. Set your API key
+---
+
+## Usage
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-YOUR-KEY-HERE
+export GEMINI_API_KEY=your-key-here
+./run.sh https://github.com/any/java11-project
 ```
 
-### 5. Run the agent
+The agent will:
+1. Build a Docker image with Python 3.11 + Java 21 (Temurin) + Maven + Git
+2. Clone the target repository inside Docker
+3. Apply all migrations across Areas A to F
+4. Run tests and fix failures (up to 3 retries per failure)
+5. Print a colour summary table in the terminal
+6. Save MIGRATION_REPORT.md to the project root
+
+---
+
+## Example
 
 ```bash
-./run.sh https://github.com/your-target/java11-repo
+export GEMINI_API_KEY=your-key-here
+./run.sh https://github.com/spring-projects/spring-petclinic
 ```
-
-That's it! The agent will:
-1. Build a Docker image with Python + Java 21 + Maven
-2. Clone the target repo
-3. Apply all migrations
-4. Run tests and fix failures
-5. Save `MIGRATION_REPORT.md` to the repo
 
 ---
 
-## Manual Docker Commands
+## View Results After the Run
 
 ```bash
-# Build the image
-docker build -t java-migration-agent .
+# See every line the agent changed
+git -C /tmp/<repo-name> diff HEAD
 
-# Run migration
-docker run --rm \
-  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-  java-migration-agent https://github.com/user/repo
+# List only the changed files
+git -C /tmp/<repo-name> diff --name-only HEAD
 
-# Run with help
-docker run --rm java-migration-agent --help
+# Read the full migration report
+cat /tmp/<repo-name>/MIGRATION_REPORT.md
+
+# Revert everything back to original
+git -C /tmp/<repo-name> checkout .
 ```
 
 ---
 
-## Without Docker (local Python)
+## How It Works
+
+The agent runs a standard agentic loop — no framework, raw API calls only:
+
+```
+User provides GitHub URL
+        |
+        v
+Gemini 2.5 Flash reads system prompt + conversation history
+        |
+        v
+Gemini decides which tool to call next
+        |
+        v
+Tool executes on the Linux environment inside Docker
+        |
+        v
+Result returned to Gemini as FunctionResponse
+        |
+        v
+Loop repeats up to 80 iterations until migration is complete
+```
+
+Six tools available to the agent:
+
+| Tool | Purpose |
+|------|---------|
+| run_shell | Execute git, mvn, gradlew, python3, sed, grep, find |
+| read_file | Read Java, XML, and Gradle source files |
+| write_file | Write modernized files (creates .bak backup before overwriting) |
+| list_directory | Explore project layout recursively |
+| search_in_files | Find migration patterns using grep across all source files |
+| log_change | Record every change with category and before/after snippets |
+
+---
+
+## Key Design Decision — Python over sed for pom.xml
+
+pom.xml is always modified using Python one-liners, never rewritten entirely and never using
+sed append commands. This was discovered through testing — sed append inserts literal backslash-n
+into XML instead of real newlines, always corrupting the file. Python handles it safely:
 
 ```bash
-# Install Python deps
-pip install -r requirements.txt
+python3 -c "
+import re, sys
+f = sys.argv[1]
+c = open(f).read()
+c = re.sub(r'<java.version>[^<]*</java.version>', '<java.version>21</java.version>', c)
+open(f, 'w').write(c)
+" /tmp/repo/pom.xml
+```
 
-# Set API key
-export ANTHROPIC_API_KEY=sk-ant-...
+This also mirrors real production practice — surgically editing only what needs to change
+rather than regenerating the whole file and risking dropped dependency tags.
 
-# Run
-python agent.py https://github.com/user/java11-repo
+---
+
+## Project Structure
+
+```
+Coding-AI-Agent-for-Java-Migration/
+├── agent.py          — Main agent (~730 lines — tools, LLM loop, display, report)
+├── Dockerfile        — Python 3.11 + Java 21 Temurin + Maven + Git
+├── run.sh            — One-command runner with Docker build + run
+├── requirements.txt  — google-genai>=0.8.0, rich>=13.7.0
+└── README.md         — This file
 ```
 
 ---
 
-## How It Works (Architecture)
+## Tested On
 
-```
-user: python agent.py <repo-url>
-          │
-          ▼
-    agent.py — main loop
-          │
-          ▼
-    Anthropic API (claude-sonnet-4-6)
-    system prompt: Java migration expert
-          │
-          ├── tool: run_shell      → git, mvn, javac, grep
-          ├── tool: read_file      → read .java, pom.xml, build.gradle
-          ├── tool: write_file     → write migrated files back
-          ├── tool: list_directory → understand project layout
-          ├── tool: search_in_files→ find migration targets
-          └── tool: log_change     → track every change for report
-          │
-          ▼
-    Agent iterates until stop_reason == "end_turn"
-    (up to 60 iterations)
-          │
-          ▼
-    print_summary() → table of all changes
-    save_migration_report() → MIGRATION_REPORT.md
-```
-
-**No frameworks used.** Just:
-- `anthropic` Python SDK — raw API calls
-- `rich` — terminal UI (panels, tables, spinners, colors)
+| Repository | Tests | Changes |
+|---|---|---|
+| spring-projects/spring-petclinic | PASSED | 9 changes — Java 21, javax fix, spring-javaformat auto-apply |
+| bezkoder/spring-boot-one-to-many | 20 changes | Records, var, Date to Instant, Text Blocks, H2 test override |
+| gothinkster/spring-boot-realworld-example-app | 29 changes | Gradle upgrade, javax to jakarta batch, records, var |
 
 ---
 
-## Example Output
+## Common Migration Patterns Handled
 
+**javax to jakarta batch migration (one command across all files):**
+```bash
+find /tmp/repo/src -name "*.java" | xargs sed -i \
+  's/import javax.persistence./import jakarta.persistence./g'
 ```
-╭──────────────────────────────────────────────────────╮
-│          ☕  Java 11 → 21 Migration Agent            │
-│    A: Build Config   B: Code   C: Dependencies       │
-╰──────────────────────────────────────────────────────╯
 
-  Repository: https://github.com/example/java11-app
-  Migration:  Java 11 → Java 21  (A + B + C)
+**H2 test database override (when repo needs MySQL but Docker has none):**
+```
+# src/test/resources/application.properties
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driver-class-name=org.h2.Driver
+spring.jpa.hibernate.ddl-auto=create-drop
+```
 
-  → Cloning repository...
-  ⚡ run_shell  $ git clone https://github.com/example/java11-app /workspace/java11-app
-    ✓ Cloning into '/workspace/java11-app'
+**Record conversion:**
+```java
+// Before
+public class ErrorMessage {
+    private int statusCode;
+    private Date timestamp;
+    public ErrorMessage(int statusCode, Date timestamp) { ... }
+    public int getStatusCode() { return statusCode; }
+}
 
-  📁 list_directory  /workspace/java11-app
-  📖 read_file  pom.xml
-  ✏️  write_file  pom.xml
-  📋 log_change  Java version bump → pom.xml
-
-  🔍 search_in_files  instanceof
-  📖 read_file  src/main/java/com/example/ShapeService.java
-  ✏️  write_file  src/main/java/com/example/ShapeService.java
-  📋 log_change  Pattern Matching → ShapeService.java
-
-  ⚡ run_shell  $ mvn -q test
-    ✓ BUILD SUCCESS
-
-──────────── Migration Summary ────────────────────
-
-  ┌───────────────────┬────────────────┬─────────────────────────┐
-  │ Category          │ File           │ Change                  │
-  ├───────────────────┼────────────────┼─────────────────────────┤
-  │ 🏗️  Build Config  │ pom.xml        │ Java version bump       │
-  │ ✨  Modernization │ Person.java    │ Record Class            │
-  │ ✨  Modernization │ ShapeService   │ Pattern Matching        │
-  │ ✨  Modernization │ Queries.java   │ Text Block              │
-  │ 📦  Dependencies  │ pom.xml        │ Surefire 3.2.5          │
-  └───────────────────┴────────────────┴─────────────────────────┘
-
-  Total changes:   5
-  Tests:           ✅ PASSED
-  Report saved:    /workspace/java11-app/MIGRATION_REPORT.md
+// After
+public record ErrorMessage(int statusCode, Instant timestamp) {}
 ```
 
 ---
 
-## Files
+## Motivation
 
-```
-java-migration-agent/
-├── agent.py           ← Main agent (all logic here)
-├── Dockerfile         ← Python 3.11 + Java 21 + Maven 3.9
-├── requirements.txt   ← anthropic, rich
-├── run.sh             ← Easy one-command runner
-├── README.md          ← This file
-└── example/
-    ├── java11-demo/   ← Sample Java 11 project (before)
-    └── java18-migrated/ ← Sample after migration
-```
+Built from 3 years of experience as an SDE at Barclays, where I manually performed
+three Java migration projects — JDK 8 to 11, 11 to 18, and 11 to 21 — each taking
+approximately 2 weeks of repetitive work.
 
----
+The same four types of changes appeared in every migration:
+- Updating build files (java.version, plugin versions)
+- Modernizing Java syntax (records, var, text blocks)
+- Fixing dependency version conflicts (Lombok, Mockito, Surefire)
+- Migrating namespaces (javax to jakarta)
 
-## Requirements
-
-- Docker Desktop (Mac/Windows/Linux)
-- Anthropic API key (`sk-ant-...`) — get at console.anthropic.com
-- Git (to clone this repo)
-- That's it — Java and Maven run inside Docker
+This agent automates all four. What took 2 weeks now takes about 10 minutes.
 
 ---
 
-## Future: Area D — Spring Boot 2.x → 3.x
-
-This is the next planned upgrade:
-- Spring Boot 2.7 → 3.2 migration
-- Full `javax.*` → `jakarta.*` sweep
-- Security config API changes
-- Auto-configuration migration
-- Integration test support
-
----
-
-*Built for CS course assignment — individual submission*
+CS Coding Agent Assignment — Srimathi Ravisankar, February 2026
